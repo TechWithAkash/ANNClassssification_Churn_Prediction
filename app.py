@@ -1,235 +1,86 @@
 # import streamlit as st
 # import numpy as np
 # import tensorflow as tf
+# from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
 # import pandas as pd
 # import pickle
-# from typing import Tuple, Any
 
-# class ChurnPredictionApp:
-#     """
-#     Streamlit application for customer churn prediction.
-    
-#     This class encapsulates the entire churn prediction workflow,
-#     including model loading, data preprocessing, and prediction.
-#     """
-    
-#     def __init__(self, 
-#                  model_path: str = 'model.h5', 
-#                  label_encoder_path: str = 'label_encoder_gender.pkl',
-#                  onehot_encoder_path: str = 'onehot_encoder_geo.pkl',
-#                  scaler_path: str = 'scaler.pkl'):
-#         """
-#         Initialize the churn prediction application.
-        
-#         Args:
-#             model_path (str): Path to the saved TensorFlow model
-#             label_encoder_path (str): Path to the gender label encoder
-#             onehot_encoder_path (str): Path to the geography one-hot encoder
-#             scaler_path (str): Path to the feature scaler
-#         """
-#         # Load the trained model
-#         self.model = self._load_model(model_path)
-        
-#         # Load encoders and scaler
-#         self.label_encoder_gender = self._load_pickle(label_encoder_path)
-#         self.onehot_encoder_geo = self._load_pickle(onehot_encoder_path)
-#         self.scaler = self._load_pickle(scaler_path)
-    
-#     @staticmethod
-#     def _load_model(model_path: str) -> Any:
-#         """
-#         Load the TensorFlow model safely.
-        
-#         Args:
-#             model_path (str): Path to the model file
-        
-#         Returns:
-#             Loaded TensorFlow model
-#         """
-#         try:
-#             return tf.keras.models.load_model(model_path)
-#         except Exception as e:
-#             st.error(f"Error loading model: {e}")
-#             raise
-    
-#     @staticmethod
-#     def _load_pickle(file_path: str) -> Any:
-#         """
-#         Load a pickle file safely.
-        
-#         Args:
-#             file_path (str): Path to the pickle file
-        
-#         Returns:
-#             Loaded object from pickle file
-#         """
-#         try:
-#             with open(file_path, 'rb') as file:
-#                 return pickle.load(file)
-#         except Exception as e:
-#             st.error(f"Error loading pickle file {file_path}: {e}")
-#             raise
-    
-#     def _preprocess_input(self, input_data: pd.DataFrame) -> np.ndarray:
-#         """
-#         Preprocess the input data for prediction.
-        
-#         Args:
-#             input_data (pd.DataFrame): Input customer data
-        
-#         Returns:
-#             Scaled and preprocessed input data
-#         """
-#         # One-hot encode 'Geography'
-#         geo_encoded = self.onehot_encoder_geo.transform(
-#             [[input_data['Geography'].values[0]]]
-#         ).toarray()
-#         geo_encoded_df = pd.DataFrame(
-#             geo_encoded, 
-#             columns=self.onehot_encoder_geo.get_feature_names_out(['Geography'])
-#         )
-        
-#         # Prepare input DataFrame
-#         processed_data = input_data.drop('Geography', axis=1)
-#         processed_data['Gender'] = self.label_encoder_gender.transform(
-#             processed_data['Gender']
-#         )
-        
-#         # Combine one-hot encoded columns with input data
-#         final_input = pd.concat([processed_data.reset_index(drop=True), geo_encoded_df], axis=1)
-        
-#         # Scale the input data
-#         return self.scaler.transform(final_input)
-    
-#     def predict_churn(self, preprocessed_input: np.ndarray) -> Tuple[float, str]:
-#         """
-#         Predict customer churn probability.
-        
-#         Args:
-#             preprocessed_input (np.ndarray): Preprocessed input data
-        
-#         Returns:
-#             Tuple of churn probability and churn status
-#         """
-#         # Predict churn probability
-#         prediction = self.model.predict(preprocessed_input)
-#         prediction_proba = float(prediction[0][0])
-        
-#         # Determine churn status
-#         churn_status = "likely to churn" if prediction_proba > 0.5 else "not likely to churn"
-        
-#         return prediction_proba, churn_status
-    
-#     def render_ui(self):
-#         """
-#         Render the Streamlit user interface for churn prediction.
-#         """
-#         # Set page configuration
-#         st.set_page_config(
-#             page_title="Customer Churn Predictor", 
-#             page_icon=":bank:", 
-#             layout="wide"
-#         )
-        
-#         # Title and description
-#         st.title("🏦 Customer Churn Prediction")
-#         st.markdown("""
-#         ### Predict Customer Churn with Machine Learning
-        
-#         This application uses a trained machine learning model to predict 
-#         the likelihood of a customer churning based on various features.
-#         """)
-        
-#         # Create input columns
-#         col1, col2 = st.columns(2)
-        
-#         with col1:
-#             # Categorical inputs
-#             geography = st.selectbox(
-#                 'Geography', 
-#                 self.onehot_encoder_geo.categories_[0]
-#             )
-#             gender = st.selectbox(
-#                 'Gender', 
-#                 self.label_encoder_gender.classes_
-#             )
-#             has_cr_card = st.selectbox(
-#                 'Has Credit Card', 
-#                 [0, 1], 
-#                 format_func=lambda x: 'Yes' if x == 1 else 'No'
-#             )
-#             is_active_member = st.selectbox(
-#                 'Is Active Member', 
-#                 [0, 1], 
-#                 format_func=lambda x: 'Yes' if x == 1 else 'No'
-#             )
-        
-#         with col2:
-#             # Numerical inputs
-#             age = st.slider('Age', 18, 92)
-#             balance = st.number_input('Balance', min_value=0.0)
-#             credit_score = st.number_input('Credit Score', min_value=300, max_value=850)
-#             estimated_salary = st.number_input('Estimated Salary')
-#             tenure = st.slider('Tenure (Years)', 0, 10)
-#             num_of_products = st.slider('Number of Products', 1, 4)
-        
-#         # Prediction button
-#         if st.button('Predict Churn', type='primary'):
-#             try:
-#                 # Prepare input data
-#                 input_data = pd.DataFrame({
-#                     'CreditScore': [credit_score],
-#                     'Gender': [gender],
-#                     'Age': [age],
-#                     'Tenure': [tenure],
-#                     'Balance': [balance],
-#                     'NumOfProducts': [num_of_products],
-#                     'HasCrCard': [has_cr_card],
-#                     'IsActiveMember': [is_active_member],
-#                     'EstimatedSalary': [estimated_salary],
-#                     'Geography': [geography]
-#                 })
-                
-#                 # Preprocess and predict
-#                 preprocessed_input = self._preprocess_input(input_data)
-#                 prediction_proba, churn_status = self.predict_churn(preprocessed_input)
-                
-#                 # Display results
-#                 st.success(f"Churn Probability: {prediction_proba:.2%}")
-#                 st.info(f"The customer is **{churn_status}**.")
-                
-#                 # Additional insights
-#                 st.markdown("### Model Prediction Insights")
-#                 st.markdown(f"""
-#                 - **Probability of Churn**: {prediction_proba:.2%}
-#                 - **Churn Status**: {churn_status.capitalize()}
-#                 """)
-                
-#             except Exception as e:
-#                 st.error(f"An error occurred during prediction: {e}")
+# # Load the trained model
+# model = tf.keras.models.load_model('model.h5')
 
-# def main():
-#     """
-#     Main function to run the Streamlit application.
-#     """
-#     app = ChurnPredictionApp()
-#     app.render_ui()
+# # Load the encoders and scaler
+# with open('label_encoder_gender.pkl', 'rb') as file:
+#     label_encoder_gender = pickle.load(file)
 
-# if __name__ == '__main__':
-#     main()
+# with open('onehot_encoder_geo.pkl', 'rb') as file:
+#     onehot_encoder_geo = pickle.load(file)
+
+# with open('scaler.pkl', 'rb') as file:
+#     scaler = pickle.load(file)
+
+# ## streamlit app
+# st.title('Customer Churn PRediction')
+
+# # User input
+# geography = st.selectbox('Geography', onehot_encodergeo.categories[0])
+# gender = st.selectbox('Gender', label_encodergender.classes)
+# age = st.slider('Age', 18, 92)
+# balance = st.number_input('Balance')
+# credit_score = st.number_input('Credit Score')
+# estimated_salary = st.number_input('Estimated Salary')
+# tenure = st.slider('Tenure', 0, 10)
+# num_of_products = st.slider('Number of Products', 1, 4)
+# has_cr_card = st.selectbox('Has Credit Card', [0, 1])
+# is_active_member = st.selectbox('Is Active Member', [0, 1])
+
+# # Prepare the input data
+# input_data = pd.DataFrame({
+#     'CreditScore': [credit_score],
+#     'Gender': [label_encoder_gender.transform([gender])[0]],
+#     'Age': [age],
+#     'Tenure': [tenure],
+#     'Balance': [balance],
+#     'NumOfProducts': [num_of_products],
+#     'HasCrCard': [has_cr_card],
+#     'IsActiveMember': [is_active_member],
+#     'EstimatedSalary': [estimated_salary]
+# })
+
+# # One-hot encode 'Geography'
+# geo_encoded = onehot_encoder_geo.transform([[geography]]).toarray()
+# geo_encoded_df = pd.DataFrame(geo_encoded, columns=onehot_encoder_geo.get_feature_names_out(['Geography']))
+
+# # Combine one-hot encoded columns with input data
+# input_data = pd.concat([input_data.reset_index(drop=True), geo_encoded_df], axis=1)
+
+# # Scale the input data
+# input_data_scaled = scaler.transform(input_data)
+
+# # Predict churn
+# prediction = model.predict(input_data_scaled)
+# prediction_proba = prediction[0][0]
+
+# st.write(f'Churn Probability: {prediction_proba:.2f}')
+
+# if prediction_proba > 0.5:
+#     st.write('The customer is likely to churn.')
+# else:
+#     st.write('The customer is not likely to churn.')
+
+# -------UI Updation Code------------------------
 import streamlit as st
 import numpy as np
 import tensorflow as tf
 import pandas as pd
 import pickle
-from typing import Tuple, Any, List, Dict
-import plotly.graph_objs as go
-import plotly.express as px
+from typing import Tuple, Any
 
 class ChurnPredictionApp:
     """
-    Advanced Streamlit application for customer churn prediction 
-    with enhanced error handling and responsive design.
+    Streamlit application for customer churn prediction.
+    
+    This class encapsulates the entire churn prediction workflow,
+    including model loading, data preprocessing, and prediction.
     """
     
     def __init__(self, 
@@ -238,366 +89,162 @@ class ChurnPredictionApp:
                  onehot_encoder_path: str = 'onehot_encoder_geo.pkl',
                  scaler_path: str = 'scaler.pkl'):
         """
-        Initialize the churn prediction application with robust error handling.
-        """
-        # Initialize model and preprocessing tools
-        self.model = None
-        self.label_encoder_gender = None
-        self.onehot_encoder_geo = None
-        self.scaler = None
+        Initialize the churn prediction application.
         
-        # Attempt to load all resources
-        self._safe_load_resources(
-            model_path, 
-            label_encoder_path, 
-            onehot_encoder_path, 
-            scaler_path
-        )
-    
-    def _safe_load_resources(self, 
-                              model_path: str, 
-                              label_encoder_path: str, 
-                              onehot_encoder_path: str, 
-                              scaler_path: str):
+        Args:
+            model_path (str): Path to the saved TensorFlow model
+            label_encoder_path (str): Path to the gender label encoder
+            onehot_encoder_path (str): Path to the geography one-hot encoder
+            scaler_path (str): Path to the feature scaler
         """
-        Safely load all required resources with comprehensive error handling.
-        """
-        try:
-            # Load model
-            self.model = self._load_model(model_path)
-            
-            # Load encoders and scaler
-            self.label_encoder_gender = self._load_pickle(label_encoder_path)
-            self.onehot_encoder_geo = self._load_pickle(onehot_encoder_path)
-            self.scaler = self._load_pickle(scaler_path)
-            
-        except Exception as e:
-            st.error(f"Critical Error in Resource Loading: {e}")
-            st.error("Please ensure all model files are correctly configured.")
-            st.stop()
+        # Load the trained model
+        self.model = self._load_model(model_path)
+        
+        # Load encoders and scaler
+        self.label_encoder_gender = self._load_pickle(label_encoder_path)
+        self.onehot_encoder_geo = self._load_pickle(onehot_encoder_path)
+        self.scaler = self._load_pickle(scaler_path)
     
     @staticmethod
     def _load_model(model_path: str) -> Any:
         """
-        Safely load the TensorFlow model with enhanced validation.
+        Load the TensorFlow model safely.
+        
+        Args:
+            model_path (str): Path to the model file
+        
+        Returns:
+            Loaded TensorFlow model
         """
         try:
-            # Validate model path
-            if not model_path or not tf.io.gfile.exists(model_path):
-                raise FileNotFoundError(f"Model file not found: {model_path}")
-            
-            model = tf.keras.models.load_model(model_path)
-            
-            # Additional model validation
-            if model is None:
-                raise ValueError("Loaded model is None")
-            
-            return model
-        
+            return tf.keras.models.load_model(model_path)
         except Exception as e:
-            st.error(f"Model Loading Error: {e}")
+            st.error(f"Error loading model: {e}")
             raise
     
     @staticmethod
     def _load_pickle(file_path: str) -> Any:
         """
-        Safely load pickle files with comprehensive error handling.
+        Load a pickle file safely.
+        
+        Args:
+            file_path (str): Path to the pickle file
+        
+        Returns:
+            Loaded object from pickle file
         """
         try:
-            # Validate file path
-            if not file_path or not tf.io.gfile.exists(file_path):
-                raise FileNotFoundError(f"Encoder/Scaler file not found: {file_path}")
-            
             with open(file_path, 'rb') as file:
-                loaded_obj = pickle.load(file)
-            
-            # Additional validation
-            if loaded_obj is None:
-                raise ValueError(f"Loaded object from {file_path} is None")
-            
-            return loaded_obj
-        
+                return pickle.load(file)
         except Exception as e:
-            st.error(f"Resource Loading Error: {e}")
+            st.error(f"Error loading pickle file {file_path}: {e}")
             raise
     
-    def _validate_input(self, input_data: pd.DataFrame) -> bool:
+    def _preprocess_input(self, input_data: pd.DataFrame) -> np.ndarray:
         """
-        Validate input data before preprocessing.
+        Preprocess the input data for prediction.
         
         Args:
             input_data (pd.DataFrame): Input customer data
         
         Returns:
-            bool: True if input is valid, False otherwise
+            Scaled and preprocessed input data
         """
-        # Define validation rules
-        validation_rules = {
-            'CreditScore': (300, 850),
-            'Age': (18, 92),
-            'Tenure': (0, 10),
-            'Balance': (0, None),
-            'NumOfProducts': (1, 4),
-            'EstimatedSalary': (0, None)
-        }
+        # One-hot encode 'Geography'
+        geo_encoded = self.onehot_encoder_geo.transform(
+            [[input_data['Geography'].values[0]]]
+        ).toarray()
+        geo_encoded_df = pd.DataFrame(
+            geo_encoded, 
+            columns=self.onehot_encoder_geo.get_feature_names_out(['Geography'])
+        )
         
-        # Check each numerical feature
-        for feature, (min_val, max_val) in validation_rules.items():
-            value = input_data[feature].values[0]
-            
-            # Skip None max_val checks
-            if max_val is not None and (value < min_val or value > max_val):
-                st.error(f"Invalid {feature}: Must be between {min_val} and {max_val}")
-                return False
-            
-            # Check for minimum value
-            if min_val is not None and value < min_val:
-                st.error(f"Invalid {feature}: Must be at least {min_val}")
-                return False
+        # Prepare input DataFrame
+        processed_data = input_data.drop('Geography', axis=1)
+        processed_data['Gender'] = self.label_encoder_gender.transform(
+            processed_data['Gender']
+        )
         
-        return True
-    
-    def _preprocess_input(self, input_data: pd.DataFrame) -> np.ndarray:
-        """
-        Advanced input preprocessing with comprehensive error handling.
-        """
-        try:
-            # Validate input first
-            if not self._validate_input(input_data):
-                st.stop()
-            
-            # One-hot encode 'Geography'
-            geo_encoded = self.onehot_encoder_geo.transform(
-                [[input_data['Geography'].values[0]]]
-            ).toarray()
-            geo_encoded_df = pd.DataFrame(
-                geo_encoded, 
-                columns=self.onehot_encoder_geo.get_feature_names_out(['Geography'])
-            )
-            
-            # Prepare input DataFrame
-            processed_data = input_data.drop('Geography', axis=1)
-            processed_data['Gender'] = self.label_encoder_gender.transform(
-                processed_data['Gender']
-            )
-            
-            # Combine one-hot encoded columns with input data
-            final_input = pd.concat([processed_data.reset_index(drop=True), geo_encoded_df], axis=1)
-            
-            # Scale the input data
-            scaled_input = self.scaler.transform(final_input)
-            
-            return scaled_input
+        # Combine one-hot encoded columns with input data
+        final_input = pd.concat([processed_data.reset_index(drop=True), geo_encoded_df], axis=1)
         
-        except Exception as e:
-            st.error(f"Preprocessing Error: {e}")
-            st.stop()
+        # Scale the input data
+        return self.scaler.transform(final_input)
     
     def predict_churn(self, preprocessed_input: np.ndarray) -> Tuple[float, str]:
         """
-        Advanced churn prediction with detailed probability interpretation.
-        """
-        try:
-            # Predict churn probability with error handling
-            if preprocessed_input is None or len(preprocessed_input) == 0:
-                st.error("Invalid input for prediction")
-                st.stop()
-            
-            prediction = self.model.predict(preprocessed_input)
-            
-            if len(prediction) == 0:
-                st.error("Model returned empty prediction")
-                st.stop()
-            
-            prediction_proba = float(prediction[0][0])
-            
-            # Sophisticated churn status determination
-            if prediction_proba < 0.3:
-                churn_status = "Low Risk"
-            elif prediction_proba < 0.6:
-                churn_status = "Moderate Risk"
-            else:
-                churn_status = "High Risk"
-            
-            return prediction_proba, churn_status
+        Predict customer churn probability.
         
-        except Exception as e:
-            st.error(f"Prediction Error: {e}")
-            st.stop()
-    
-    def _create_churn_gauge(self, probability: float) -> go.Figure:
+        Args:
+            preprocessed_input (np.ndarray): Preprocessed input data
+        
+        Returns:
+            Tuple of churn probability and churn status
         """
-        Create an interactive Plotly gauge chart for churn probability.
-        """
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = probability * 100,
-            domain = {'x': [0, 1], 'y': [0, 1]},
-            title = {'text': "Churn Probability"},
-            gauge = {
-                'axis': {'range': [0, 100]},
-                'bar': {'color': "darkblue"},
-                'steps' : [
-                    {'range': [0, 30], 'color': "lightgreen"},
-                    {'range': [30, 60], 'color': "yellow"},
-                    {'range': [60, 100], 'color': "red"}
-                ]
-            }
-        ))
-        fig.update_layout(autosize=True)
-        return fig
+        # Predict churn probability
+        prediction = self.model.predict(preprocessed_input)
+        prediction_proba = float(prediction[0][0])
+        
+        # Determine churn status
+        churn_status = "likely to churn" if prediction_proba > 0.5 else "not likely to churn"
+        
+        return prediction_proba, churn_status
     
     def render_ui(self):
         """
-        Responsive Streamlit user interface with advanced design.
+        Render the Streamlit user interface for churn prediction.
         """
-        # Advanced page configuration
+        # Set page configuration
         st.set_page_config(
-            page_title="Churn Prediction Intelligence", 
-            page_icon=":chart_with_upwards_trend:", 
+            page_title="Customer Churn Predictor", 
+            page_icon=":bank:", 
             layout="wide"
         )
         
-        # Custom CSS for responsiveness and modern design
+        # Title and description
+        st.title("🏦 Customer Churn Prediction")
         st.markdown("""
-        <style>
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .stColumn {
-                width: 100% !important;
-            }
-        }
+        ### Predict Customer Churn with Machine Learning
         
-        /* Modern, clean UI */
-        .stApp {
-            background-color: #f4f6f9;
-        }
-        .stButton>button {
-            background-color: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        .stButton>button:hover {
-            background-color: #2563eb;
-            transform: scale(1.05);
-        }
-        .header {
-            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .stMarkdown h1 {
-            color: #1e3a8a;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+        This application uses a trained machine learning model to predict 
+        the likelihood of a customer churning based on various features.
+        """)
         
-        # Professional header
-        st.markdown("""
-        <div class="header">
-            <h1>🏦 Customer Churn Prediction Intelligence</h1>
-            <p>Advanced Machine Learning Insights for Customer Retention</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Responsive input columns
-        col1, col2 = st.columns([1, 1], gap="medium")
-        
-        # Default values to prevent potential errors
-        default_inputs = {
-            'geography': 'France',
-            'gender': 'Male',
-            'has_cr_card': 1,
-            'is_active_member': 1,
-            'age': 35,
-            'balance': 50000.0,
-            'credit_score': 650,
-            'estimated_salary': 75000.0,
-            'tenure': 5,
-            'num_of_products': 2
-        }
+        # Create input columns
+        col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("#### 📊 Customer Profile")
+            # Categorical inputs
             geography = st.selectbox(
-                'Geographic Region', 
-                self.onehot_encoder_geo.categories_[0],
-                index=self.onehot_encoder_geo.categories_[0].tolist().index(default_inputs['geography']),
-                help="Select the customer's geographic location"
+                'Geography', 
+                self.onehot_encoder_geo.categories_[0]
             )
             gender = st.selectbox(
                 'Gender', 
-                self.label_encoder_gender.classes_,
-                index=list(self.label_encoder_gender.classes_).index(default_inputs['gender']),
-                help="Select the customer's gender"
+                self.label_encoder_gender.classes_
             )
             has_cr_card = st.selectbox(
-                'Credit Card Ownership', 
+                'Has Credit Card', 
                 [0, 1], 
-                index=default_inputs['has_cr_card'],
-                format_func=lambda x: 'Yes' if x == 1 else 'No',
-                help="Does the customer have a credit card?"
+                format_func=lambda x: 'Yes' if x == 1 else 'No'
             )
             is_active_member = st.selectbox(
-                'Membership Status', 
+                'Is Active Member', 
                 [0, 1], 
-                index=default_inputs['is_active_member'],
-                format_func=lambda x: 'Active' if x == 1 else 'Inactive',
-                help="Is the customer an active member?"
+                format_func=lambda x: 'Yes' if x == 1 else 'No'
             )
         
         with col2:
-            st.markdown("#### 🔍 Detailed Metrics")
-            age = st.slider(
-                'Age', 
-                min_value=18, 
-                max_value=92, 
-                value=default_inputs['age'],
-                help="Customer's age"
-            )
-            balance = st.number_input(
-                'Account Balance', 
-                min_value=0.0, 
-                value=default_inputs['balance'],
-                help="Customer's account balance"
-            )
-            credit_score = st.number_input(
-                'Credit Score', 
-                min_value=300, 
-                max_value=850, 
-                value=default_inputs['credit_score'],
-                help="Customer's credit score"
-            )
-            estimated_salary = st.number_input(
-                'Estimated Salary', 
-                min_value=0.0, 
-                value=default_inputs['estimated_salary'],
-                help="Customer's estimated annual salary"
-            )
-            tenure = st.slider(
-                'Years with Bank', 
-                min_value=0, 
-                max_value=10, 
-                value=default_inputs['tenure'],
-                help="Duration of customer's relationship with the bank"
-            )
-            num_of_products = st.slider(
-                'Number of Bank Products', 
-                min_value=1, 
-                max_value=4, 
-                value=default_inputs['num_of_products'],
-                help="Number of bank products customer uses"
-            )
+            # Numerical inputs
+            age = st.slider('Age', 18, 92)
+            balance = st.number_input('Balance', min_value=0.0)
+            credit_score = st.number_input('Credit Score', min_value=300, max_value=850)
+            estimated_salary = st.number_input('Estimated Salary')
+            tenure = st.slider('Tenure (Years)', 0, 10)
+            num_of_products = st.slider('Number of Products', 1, 4)
         
-        # Prediction button with enhanced styling
-        prediction_btn = st.button('Generate Churn Prediction', type='primary')
-        
-        if prediction_btn:
+        # Prediction button
+        if st.button('Predict Churn', type='primary'):
             try:
                 # Prepare input data
                 input_data = pd.DataFrame({
@@ -617,47 +264,23 @@ class ChurnPredictionApp:
                 preprocessed_input = self._preprocess_input(input_data)
                 prediction_proba, churn_status = self.predict_churn(preprocessed_input)
                 
-                # Results display
-                st.markdown("## 🎯 Prediction Results")
+                # Display results
+                st.success(f"Churn Probability: {prediction_proba:.2%}")
+                st.info(f"The customer is **{churn_status}**.")
                 
-                # Responsive results layout
-                col_gauge, col_insights = st.columns([1, 1])
-                
-                with col_gauge:
-                    st.plotly_chart(self._create_churn_gauge(prediction_proba), use_container_width=True)
-                
-                with col_insights:
-                    st.metric("Churn Risk Level", churn_status)
-                    
-                    # Color-coded risk description
-                    if churn_status == "Low Risk":
-                        st.success("Customer appears stable and likely to continue engagement.")
-                    elif churn_status == "Moderate Risk":
-                        st.warning("Customer shows signs of potential churn. Proactive retention strategies recommended.")
-                    else:
-                        st.error("High risk of customer churning. Immediate intervention required.")
-                
-                # Detailed insights section
-                with st.expander("Detailed Churn Insights"):
-                    st.markdown(f"""
-                    ### Comprehensive Churn Analysis
-                    
-                    **Probability Breakdown:**
-                    - Churn Probability: **{prediction_proba:.2%}**
-                    - Risk Classification: **{churn_status}**
-                    
-                    **Potential Retention Strategies:**
-                    - Review customer's product portfolio
-                    - Personalized engagement communication
-                    - Targeted retention offers
-                    """)
+                # Additional insights
+                st.markdown("### Model Prediction Insights")
+                st.markdown(f"""
+                - **Probability of Churn**: {prediction_proba:.2%}
+                - **Churn Status**: {churn_status.capitalize()}
+                """)
                 
             except Exception as e:
-                st.error(f"Prediction Process Error: {e}")
+                st.error(f"An error occurred during prediction: {e}")
 
 def main():
     """
-    Entry point for the Churn Prediction Streamlit Application.
+    Main function to run the Streamlit application.
     """
     app = ChurnPredictionApp()
     app.render_ui()
